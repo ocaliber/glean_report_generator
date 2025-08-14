@@ -1,0 +1,204 @@
+<h1 id="report-generator-help">📝 Report Generator Help</h1>
+<p>Hello! Welcome to the Caliber Design report generator help. Below
+you’ll find the fields and placeholders available in your Word template.
+Feel free to customize any of these – the generator will pick them up
+automatically.</p>
+<hr />
+<h2 id="reporting-period">1. Reporting Period</h2>
+<ul>
+<li><strong><code>{{ reporting_period }}</code></strong><br />
+A human-readable date range (e.g., “2025-07-21 – 2025-07-27”).</li>
+</ul>
+<hr />
+<h2 id="projects-overview">2. Projects Overview</h2>
+<p>Your template receives a <code>projects</code> list; one entry per
+selected project.</p>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 65%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>code</code></td>
+<td>Project code or ID</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>Project name</td>
+</tr>
+<tr>
+<td><code>range_hours</code></td>
+<td>Hours logged <strong>during</strong> this report period</td>
+</tr>
+<tr>
+<td><code>total_hours</code></td>
+<td>All-time hours on this project</td>
+</tr>
+<tr>
+<td><code>range_billable</code></td>
+<td>Billable hours in the selected period</td>
+</tr>
+<tr>
+<td><code>total_billable</code></td>
+<td>All-time billable hours</td>
+</tr>
+<tr>
+<td><code>budget_used</code></td>
+<td>Budget already spent (currency)</td>
+</tr>
+<tr>
+<td><code>budget_hours</code></td>
+<td>Total budgeted hours</td>
+</tr>
+<tr>
+<td><code>budget_amount</code></td>
+<td>Budget amount (currency)</td>
+</tr>
+<tr>
+<td><code>monthly_user_budget_hours</code></td>
+<td>User’s monthly budgeted hours</td>
+</tr>
+<tr>
+<td><code>uninvoiced_amount</code></td>
+<td>Dollars not yet invoiced</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Jinja loop</strong>:</p>
+<pre class="jinja"><code>| Code | Name | Period Hrs | Billable Hrs | Budget Used | Uninvoiced |
+|------|------|------------|--------------|-------------|------------|
+{% for p in projects %}
+| {{ p.code }} | {{ p.name }} | {{ p.range_hours }} | {{ p.range_billable }} | ${{ p.budget_used }} | ${{ p.uninvoiced_amount }} |
+{% endfor %}</code></pre>
+<hr />
+<h2 id="detailed-time-log">3. Detailed Time Log</h2>
+<p>Use <code>entries</code>, a list of all time entries in the
+period.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project</code></td>
+<td>Project name</td>
+</tr>
+<tr>
+<td><code>project_code</code></td>
+<td>Project code</td>
+</tr>
+<tr>
+<td><code>spent_date</code></td>
+<td>Entry date (e.g., “2025-07-22”)</td>
+</tr>
+<tr>
+<td><code>task</code></td>
+<td>Task name</td>
+</tr>
+<tr>
+<td><code>notes</code></td>
+<td>Free-text notes</td>
+</tr>
+<tr>
+<td><code>rounded_hours</code></td>
+<td>Hours rounded to nearest quarter</td>
+</tr>
+<tr>
+<td><code>billable</code></td>
+<td><code>true</code>/<code>false</code></td>
+</tr>
+<tr>
+<td><code>user.name</code></td>
+<td>Person who logged the entry</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>:</p>
+<pre class="jinja"><code>{% for e in entries %}
+| {{ e.spent_date }} | {{ e.project }} | {{ e.task }} | {{ e.notes }} | {{ e.rounded_hours }} hrs | {{ e.user.name }} |
+{% endfor %}</code></pre>
+<hr />
+<h2 id="people-summary">4. People Summary</h2>
+<p><code>people_summary</code> breaks down billable hours by user, then
+by project and task.</p>
+<ul>
+<li><strong><code>name</code></strong>: User’s name<br />
+</li>
+<li><strong><code>total</code></strong>: Total hours for this
+period</li>
+</ul>
+<p>Each person has a <code>projects</code> list:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project</code></td>
+<td>Project name</td>
+</tr>
+<tr>
+<td><code>total</code></td>
+<td>Hours on that project</td>
+</tr>
+<tr>
+<td><code>tasks</code></td>
+<td>List of <code>{ task, hours }</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Loop example</strong>:</p>
+<pre class="jinja"><code>{% for person in people_summary %}
+### {{ person.name }} — {{ person.total }} hrs
+{% for proj in person.projects %}
+- **{{ proj.project }}** ({{ proj.total }} hrs)
+  {% for t in proj.tasks %}
+  - {{ t.task }}: {{ t.hours }} hrs
+  {% endfor %}
+{% endfor %}
+{% endfor %}</code></pre>
+<hr />
+<h2 id="ai-summarization-optional">5. AI Summarization (Optional)</h2>
+<p>To include an AI-generated summary, wrap your prompt between:</p>
+<pre class="text"><code>[[AI_SUMMARY]]
+Your custom instructions here…
+[[END_AI_SUMMARY]]</code></pre>
+<ul>
+<li>The generator grabs everything between those markers.<br />
+</li>
+<li>You control grouping, bullet style, length, etc.<br />
+</li>
+<li>Remove both tags if you don’t want an AI summary.</li>
+</ul>
+<hr />
+<h2 id="tips-tricks">Tips &amp; Tricks</h2>
+<ul>
+<li><strong>Conditional sections</strong>: use
+<code>{% if projects %}</code> … <code>{% endif %}</code> for empty-data
+messages.<br />
+</li>
+<li><strong>Currency formatting</strong>: wrap values in
+<code>\$…</code> or use Word’s built-in formatting.<br />
+</li>
+<li><strong>Markdown → HTML</strong>: run
+<code>pandoc help.md -o help.html</code> whenever you update.<br />
+</li>
+<li><strong>Test early</strong>: preview with sample data to catch any
+template typos.</li>
+</ul>
+<blockquote>
+<p>💬 Thanks for using Caliber Design’s report generator!</p>
+</blockquote>

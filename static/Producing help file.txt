@@ -1,0 +1,3 @@
+To create the help file from the markdown file - in cmd do:
+
+pandoc help.md -o help.html

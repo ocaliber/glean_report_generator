@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project Report Generator</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon"/>
+
+  <!-- Include jQuery, Moment.js, and Daterangepicker CSS/JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/min/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+  <!-- Custom CSS -->
+  <style>
+    body { background-color:#333; color:white; font-family:Arial,sans-serif }
+    .container { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh }
+    .form-wrapper { background:#f0f0f0; padding:20px 40px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.5); width:100%; max-width:500px; color:black }
+    .form-group {
+      display:        flex;
+      align-items:    center;
+      margin-bottom:  15px;
+    }
+    label {
+      flex:           0 0 110px;   /* fixed width column */
+      text-align:     right;
+      margin-right:   10px;
+      color:          black;
+    }
+    select, input { flex:2; color:black; background:white }
+    button { padding:10px; background:#e87e04; border:none; color:white; font-size:16px; cursor:pointer }
+    button:hover { background:#d96b04 }
+    img { display:block; margin:0 auto 20px; width:150px }
+    .daterangepicker td, .daterangepicker th { color:black !important }
+    .daterangepicker .drp-calendar { background:#fff }
+    .daterangepicker .month, .daterangepicker .weekday, .daterangepicker .ranges li { color:black !important }
+
+    /* Modal styles */
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); }
+    .modal-content { background:#fff; color:#000; margin:8% auto; padding:20px; width:90%; max-width:500px; border-radius:5px; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .modal-body { max-height:300px; overflow:auto; }
+    .modal-body ul { list-style:none; padding-left:1em; }
+    .modal-body li { margin:4px 0; cursor:pointer; }
+    .modal-body li.selected { background:#def; }
+
+    /* “Choose” button next to template name */
+    #open-template-modal { margin-left: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="form-wrapper">
+      <img src="{{ url_for('static', filename='images/caliber-logo.png') }}" alt="Caliber Design Logo"/>
+      <p style="text-align:center;">
+        <a href="{{ url_for('static', filename='help.html') }}"
+           target="_blank"
+           style="color:#e87e04; text-decoration:none;">
+          Help
+        </a>
+      </p>
+
+      <form id="selection-form" action="/submit_selection" method="POST" enctype="multipart/form-data">
+        <!-- Client -->
+        <div class="form-group">
+          <label for="client">Client:</label>
+          <select id="client" name="client" required>
+            <option value="">-- Select Client --</option>
+            {% for client in clients %}
+            <option value="{{ client.id }}">{{ client.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Projects -->
+        <div class="form-group" style="flex-direction:row; align-items:flex-start;">
+          <label>Project(s):</label>
+          <div id="project-list"
+              style="flex:2;
+                     height:100px;
+                     overflow-y:auto;
+                     border:1px solid #ccc;
+                     padding:5px;
+                     box-sizing:border-box;   
+                     text-align:left;
+                     font-size:0.8em;">
+            <ul style="list-style:none; margin:0; padding:0;">
+              <!-- your JS should now inject into this UL -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Date Range -->
+        <div class="form-group">
+          <label for="date-range">Date Range:</label>
+          <input type="text" id="date-range" name="date_range" autocomplete="off" required/>
+        </div>
+
+        <!-- Template Selection -->
+        <div class="form-group">
+          <label>Template:</label>
+          <button type="button" id="open-template-modal">Choose</button>
+          <span id="selected-template-name" style="margin-left:10px;"></span>
+          <input type="hidden" name="template_file_id" id="template_file_id" value=""/>
+        </div>
+        <!-- Manage Templates link -->
+        <div class="form-group" style="margin-top:-10px; margin-bottom:20px;">
+          <label></label>
+          <a href="https://acutedesign.sharepoint.com/sites/ReportTemplateFolder/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FReportTemplateFolder%2FShared%20Documents%2FTemplates&viewid=b93d3e5d%2D13ab%2D4eac%2Db535%2D7449590641c5"
+             target="_blank" style="color:#e87e04; text-decoration:none; flex:2;">
+            Manage Templates
+          </a>
+        </div>
+
+        <!-- Output Format -->
+        <div class="form-group">
+          <label for="output_format">Output Format:</label>
+          <select id="output_format" name="output_format" required>
+            <option value="word">Word Document only for now</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="justify-content:center;">
+          <button type="submit">Generate Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Template-Browser Modal -->
+  <div id="template-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <strong>Choose a Template</strong>
+        <button class="close" style="background:none; border:none; font-size:1.5em; cursor:pointer;">&times;</button>
+      </div>
+      <div style="margin-bottom:10px;">
+        <button id="up-button" type="button">Up</button>
+      </div>
+      <div class="modal-body" id="template-browser">
+        Loading…
+      </div>
+    </div>
+  </div>
+
+  <!-- Date-picker & project JS -->
+  <script>
+    $(function(){
+      var today = moment(),
+          start, end;
+      if (today.isoWeekday() <= 2) {
+        // Mon/Tue → last week
+        start = today.clone().startOf('isoWeek').subtract(1,'week');
+        end   = today.clone().endOf('isoWeek').subtract(1,'week');
+      } else {
+        // Wed–Sun → this week
+        start = today.clone().startOf('isoWeek');
+        end   = today.clone().endOf('isoWeek');
+      }
+      $('#date-range').daterangepicker({
+        locale: { format:'YYYY-MM-DD', firstDay:1 },
+        startDate: start,
+        endDate: end,
+        ranges: {
+          'Last Week': [
+            today.clone().startOf('isoWeek').subtract(1,'week'),
+            today.clone().endOf('isoWeek').subtract(1,'week')
+          ],
+          'This Week': [
+            today.clone().startOf('isoWeek'),
+            today.clone().endOf('isoWeek')
+          ]
+        },
+        showCancel: false
+      });
+
+      $('#client').on('change', function(){
+        var cid  = $(this).val(),
+            list = $('#project-list');
+
+        list.empty();
+        if (!cid) return;
+
+        $.get('/get_projects/' + cid, function(projs){
+          projs.forEach(function(p){
+            var chk = $(
+              '<label style="display:block; margin:0; padding:0; text-align:left; flex:none;">' +
+                '<input type="checkbox" name="project" value="' + p.id + '"> ' +
+                p.name +
+              '</label>'
+            );
+            list.append(chk);
+          });
+        });
+      });
+    });
+  </script>
+
+
+  <!-- Template-Browser JS -->
+  <script>
+    $(function(){
+      const $modal   = $('#template-modal');
+      const $browser = $('#template-browser');
+      let pathStack  = ['/Templates'];
+
+      function fetchAndRender(path) {
+        $browser.text('Loading…').empty();
+        $.getJSON('/api/templates', { path })
+         .done(function(items){
+            $browser.empty();
+            const $ul = $('<ul>').css({ 'list-style': 'none', margin:0, padding:0 });
+            items.forEach(function(it){
+              const $li = $('<li>')
+                .text(it.name)
+                .data('id', it.id)
+                .data('path', path + (path==='/'?'':'/') + it.name)
+                .css({ cursor: 'pointer', padding: '4px 0' });
+
+              if (it.folder) {
+                $li.css('font-weight','bold')
+                   .on('click', function(){
+                     pathStack.push($li.data('path'));
+                     fetchAndRender($li.data('path'));
+                   });
+              } else {
+                $li.on('click', function(){
+                  $browser.find('li.selected').removeClass('selected');
+                  $li.addClass('selected');
+                  $('#template_file_id').val($li.data('id'));
+                  $('#selected-template-name').text(it.name);
+                  $modal.hide();
+                });
+              }
+              $ul.append($li);
+            });
+            $browser.append($ul);
+         });
+      }
+
+      // Open on Choose
+      $('#open-template-modal').on('click', function(){
+        pathStack = ['/Templates'];
+        fetchAndRender('/Templates');
+        $modal.show();
+      });
+
+      // Up button
+      $('#up-button').on('click', function(){
+        if (pathStack.length > 1) {
+          pathStack.pop();
+          fetchAndRender(pathStack[pathStack.length - 1]);
+        }
+      });
+
+      // Close via ×
+      $('#template-modal .close').on('click', function(){
+        $modal.hide();
+      });
+
+      // Click outside
+      $(window).on('click', function(e){
+        if (e.target.id === 'template-modal') {
+          $modal.hide();
+        }
+      });
+    });
+  </script>
+
+
+</body>
+</html>

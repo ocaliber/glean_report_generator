@@ -1,0 +1,15 @@
+distilled from here for a new app: https://devcenter.heroku.com/articles/git
+
+cd "C:\Users\OthnielCressy\OneDrive - Acute Design & Analysis\Documents\Macros\glean"
+
+git init
+
+git add .
+
+git commit -m "my first commit"
+
+heroku create glean1001app
+
+git remote -v
+
+git push heroku HEAD:master

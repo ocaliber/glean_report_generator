@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Weekly Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        h2 {
+            color: #F47A20; /* Orange color */
+            font-weight: normal; /* Non-bold */
+        }
+        ul {
+            margin: 0 0 10px 20px;
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+        li {
+            margin-bottom: 5px;
+            font-size: 12pt;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd; /* Table borders */
+            padding: 8px;
+        }
+        th {
+            text-align: left; /* Left-align table headers */
+            background-color: #f2f2f2; /* Light gray header background */
+        }
+        td {
+            text-align: right; /* Right-align for numeric and dollar values */
+        }
+        td:first-child, th:first-child {
+            text-align: left; /* Left-align for first column */
+        }
+    </style>
+</head>
+<body>
+    <p>Hi ​_,</p>
+    <p>Here is this week’s status report.</p>
+
+    <h2>ACTION REQUIRED OR OUTSTANDING ISSUES</h2>
+    <ul>
+        <li></li> <!-- Placeholder bullet -->
+    </ul>
+
+    <h2>HOURS SUMMARY</h2>
+    <!-- INSERT_PROJECT_SUMMARY -->
+
+    <h2>TASKS COMPLETED THIS WEEK</h2>
+    <!-- INSERT_AI_SUMMARY -->
+
+    <h2>TASKS NOT COMPLETED THIS WEEK</h2>
+    <ul>
+        <li></li> <!-- Placeholder bullet -->
+    </ul>
+
+    <h2>GOALS FOR NEXT WEEK</h2>
+    <ul>
+        <li></li> <!-- Placeholder bullet -->
+    </ul>
+
+    <h2>DETAILED TIME LOG</h2>
+    <!-- INSERT_DETAILED_TIME_LOG -->
+
+    <p>Kind Regards,</p>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Report Generator</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+
+    <!-- Include jQuery, Moment.js, and Daterangepicker CSS/JS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/moment@2.29.1/min/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+    <!-- Custom CSS for styling -->
+    <style>
+        body {
+            background-color: #333;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .form-wrapper {
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 500px;
+            color: black;
+        }
+        .form-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        label {
+            flex: 1;
+            text-align: right;
+            margin-right: 10px;
+            color: black;
+        }
+        select, input {
+            flex: 2;
+            color: black;
+            background-color: white;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #e87e04;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #d96b04;
+        }
+        img {
+            display: block;
+            margin: 0 auto 20px;
+            width: 150px;
+        }
+        .daterangepicker td, .daterangepicker th {
+            color: black !important;
+        }
+        .daterangepicker .drp-calendar {
+            background-color: #fff;
+        }
+        .daterangepicker .month,
+        .daterangepicker .weekday,
+        .daterangepicker .ranges li {
+            color: black !important;
+        }
+        /* Template browser styles */
+        #template-browser ul { list-style:none; padding-left:1em; }
+        #template-browser li { margin:4px 0; cursor:pointer; }
+        #template-browser li.selected { background:#def; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-wrapper">
+            <img src="{{ url_for('static', filename='images/caliber-logo.png') }}" alt="Caliber Design Logo">
+            <p style="text-align: center;">
+                <a href="/help" target="_blank" style="color: #e87e04; text-decoration: none;">Help</a>
+            </p>
+
+            <!-- SharePoint folder upload link -->
+            <p style="text-align:center; margin-bottom:20px;">
+                <!-- Replace href with your actual SharePoint Templates folder URL -->
+                <a href="https://yourtenant.sharepoint.com/sites/YourSite/Shared%20Documents/Templates"
+                   target="_blank"
+                   style="color:#e87e04; text-decoration:none;">
+                    Upload or manage report templates in SharePoint
+                </a>
+            </p>
+
+            <form id="selection-form" action="/submit_selection" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="client">Select Client:</label>
+                    <select id="client" name="client" required>
+                        <option value="">-- Select Client --</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}">{{ client.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="project">Select Project(s):</label>
+                    <select id="project" name="project" multiple required>
+                        <option value="">-- Select Project --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="date-range">Select Date Range:</label>
+                    <input type="text" id="date-range" name="date_range" autocomplete="off" required>
+                </div>
+
+                <!-- TEMPLATE BROWSER widget replaces both file upload & dropdown -->
+                <div class="form-group">
+                    <label for="template-browser">Choose Template:</label>
+                    <div id="template-browser" style="flex:2; border:1px solid #ccc; padding:8px; max-height:200px; overflow:auto;">
+                        Loading templates…
+                    </div>
+                    <!-- will contain the chosen file ID -->
+                    <input type="hidden" name="template_file_id" id="template_file_id">
+                </div>
+
+                <div class="form-group">
+                    <label>AI Summarization:</label>
+                    <div style="flex: 2;">
+                        <label><input type="radio" name="ai_summarization" value="yes"> Include AI Summarization</label><br>
+                        <label><input type="radio" name="ai_summarization" value="no" checked> No AI Summarization</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="output_format">Output Format:</label>
+                    <select id="output_format" name="output_format" required>
+                        <option value="word">Word Document</option>
+                    </select>
+                </div>
+
+                <button type="submit">Generate Report</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript for date picker and fetching projects -->
+    <script>
+        function getPreviousWeekRange() {
+            var start = moment().startOf('isoWeek').subtract(1, 'week');
+            var end   = moment().endOf('isoWeek').subtract(1, 'week');
+            return [start, end];
+        }
+
+        $(function() {
+            $('#date-range').daterangepicker({
+                locale: { format: 'YYYY-MM-DD', firstDay: 1 },
+                startDate: getPreviousWeekRange()[0],
+                endDate:   getPreviousWeekRange()[1],
+                ranges:    { 'Last Week': getPreviousWeekRange() },
+                showCancel: false
+            });
+
+            // Fetch projects when client changes
+            $('#client').on('change', function() {
+                var clientId = $(this).val();
+                var projectDropdown = $('#project');
+                projectDropdown.empty().append('<option value="">-- Select Project --</option>');
+                if (!clientId) return;
+                $.get('/get_projects/' + clientId, function(projects) {
+                    projects.forEach(function(proj) {
+                        projectDropdown.append(new Option(proj.name, proj.id));
+                    });
+                });
+            });
+        });
+    </script>
+
+    <!-- Template-browser JS -->
+    <script>
+        function makeNode(item, path) {
+            const li = document.createElement('li');
+            li.textContent = item.name;
+            li.dataset.id   = item.id;
+            li.dataset.type = item.folder ? 'folder' : 'file';
+            li.dataset.path = path + '/' + item.name;
+            if (item.folder) {
+                li.style.fontWeight = 'bold';
+                li.addEventListener('click', () => toggleFolder(li));
+            } else {
+                li.addEventListener('click', () => selectFile(li));
+            }
+            return li;
+        }
+
+        function toggleFolder(folderLi) {
+            if (folderLi.classList.contains('expanded')) {
+                folderLi.classList.remove('expanded');
+                folderLi.querySelector('ul').remove();
+            } else {
+                var path = folderLi.dataset.path;
+                fetch(`/api/templates?path=${encodeURIComponent(path)}`)
+                    .then(r => r.json())
+                    .then(items => {
+                        const ul = document.createElement('ul');
+                        items.forEach(it => ul.appendChild(makeNode(it, path)));
+                        folderLi.appendChild(ul);
+                        folderLi.classList.add('expanded');
+                    });
+            }
+        }
+
+        function selectFile(fileLi) {
+            // clear previous selection
+            document.querySelectorAll('#template-browser li.selected')
+                    .forEach(n => n.classList.remove('selected'));
+            fileLi.classList.add('selected');
+            document.getElementById('template_file_id').value = fileLi.dataset.id;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/templates?path=/')
+                .then(r => r.json())
+                .then(items => {
+                    const container = document.getElementById('template-browser');
+                    container.textContent = '';
+                    const ul = document.createElement('ul');
+                    items.forEach(it => ul.appendChild(makeNode(it, '')));
+                    container.appendChild(ul);
+                });
+        });
+    </script>
+</body>
+</html>
